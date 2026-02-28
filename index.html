@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriOptima - Farm Resource Allocation</title>
+    <meta name="description"
+        content="AI-driven resource allocation for modern farming. Optimize crop yield, water usage, and fertilizer distribution.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Inputs -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <h1>AgriOptima</h1>
+            </div>
+
+            <div class="user-profile" style="position: relative;">
+                <div class="user-info">
+                    <p class="subtitle" id="i18n-subtitle">Constraint Optimization Engine</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="icon-btn" onclick="window.location.href='login.html'"
+                        style="background: rgba(244, 67, 54, 0.15); border-color: rgba(244, 67, 54, 0.3); color: #f44336;"
+                        id="i18n-logout">Exit</button>
+                    <div class="streak-badge" title="Daily Planning Streak">
+                        <span class="streak-icon">🔥</span>
+                        <span class="streak-count" id="streak-count">14</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3>Location & Weather</h3>
+                    <button class="icon-btn" id="live-data-btn" title="Fetch Live Data">📍 Live</button>
+                </div>
+                <div class="input-group select-group">
+                    <label for="location">Region:</label>
+                    <select id="location" class="glass-select">
+                        <option value="punjab">Punjab (North)</option>
+                        <option value="maharashtra" selected>Maharashtra (West)</option>
+                        <option value="tamilnadu">Tamil Nadu (South)</option>
+                        <option value="westbengal">West Bengal (East)</option>
+                    </select>
+                </div>
+                <div class="input-group select-group">
+                    <label for="month">Current Month:</label>
+                    <select id="month" class="glass-select">
+                        <option value="jan">January</option>
+                        <option value="apr">April</option>
+                        <option value="jul">July (Monsoon)</option>
+                        <option value="oct">October</option>
+                    </select>
+                </div>
+                <div class="weather-prediction" id="weather-card">
+                    <span class="weather-icon" id="weather-icon">☀️</span>
+                    <div class="weather-text">
+                        <span class="weather-title">Forecast: <span id="weather-desc">Clear & Dry</span></span>
+                        <span class="weather-detail">Impacts allocation</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <h3>Farm Dimensions</h3>
+                <div class="input-group">
+                    <label for="land-size">Total Land Area (Acres): <span id="land-val">5.0</span></label>
+                    <input type="range" id="land-size" min="0.5" max="50.0" step="0.5" value="5.0">
+                </div>
+            </div>
+
+            <div class="input-section">
+                <h3>Resource Constraints</h3>
+                <div class="input-group">
+                    <label for="water-limit">Water Limit (1000 Liters): <span id="water-val">500</span></label>
+                    <input type="range" id="water-limit" min="50" max="5000" step="10" value="500">
+                </div>
+                <div class="input-group">
+                    <label for="budget">Fertilizer Budget (₹): <span id="budget-val">50000</span></label>
+                    <input type="range" id="budget" min="5000" max="500000" step="5000" value="50000">
+                </div>
+            </div>
+
+            <div class="input-section">
+                <h3>Variables (Crops)</h3>
+                <div class="crop-tags">
+                    <span class="tag wheat">Wheat</span>
+                    <span class="tag corn">Corn</span>
+                    <span class="tag soy">Soybeans</span>
+                    <span class="tag rice">Rice</span>
+                    <span class="tag sugarcane">Sugarcane</span>
+                </div>
+            </div>
+
+            <button id="optimize-btn" class="primary-btn">
+                <span class="btn-text">Run Solver</span>
+                <div class="loader-ring"></div>
+            </button>
+        </aside>
+
+        <!-- Main Content: Visual Layout -->
+        <main class="main-content">
+            <header class="topbar">
+                <h2>Allocation Layout</h2>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span id="system-status">Awaiting Optimization</span>
+                </div>
+            </header>
+
+            <div class="visualization-area">
+                <div class="farm-grid" id="farm-grid">
+                    <!-- Grid cells will be generated via JS -->
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item"><span class="color-box unallocated"></span>Unallocated</div>
+                    <div class="legend-item"><span class="color-box wheat"></span>Wheat Zone</div>
+                    <div class="legend-item"><span class="color-box corn"></span>Corn Zone</div>
+                    <div class="legend-item"><span class="color-box soy"></span>Soybean Zone</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Output Data -->
+        <aside class="metrics-panel">
+            <h2>Optimization Results</h2>
+            <div class="metrics-dashboard">
+                <div class="metric-card">
+                    <p class="metric-label">Projected Yield</p>
+                    <h3 class="metric-value" id="yield-out">--</h3>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">Water Efficiency</p>
+                    <h3 class="metric-value" id="water-eff">--</h3>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">Profitability (Est.)</p>
+                    <h3 class="metric-value highlight" id="profit-out">--</h3>
+                </div>
+            </div>
+
+            <div class="schedule-section">
+                <h3>Irrigation & Fertilizer Schedule</h3>
+                <div class="schedule-list" id="schedule-list">
+                    <div class="empty-state">Run optimization to generate schedules.</div>
+                </div>
+            </div>
+
+            <div class="ai-insights-section" style="margin-top: 24px;">
+                <h3><span class="streak-icon">✨</span> AI Insights & Alerts</h3>
+                <div class="schedule-list" id="ai-insights-list">
+                    <div class="empty-state">Waiting for data processing...</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Basic internalization logic for index.html based on Login selection
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('agriLanguage') || 'en';
+
+            const mainTranslates = {
+                'en': { sub: 'Constraint Optimization Engine', exit: 'Exit' },
+                'hi': { sub: 'स्मार्ट संसाधन प्रबंधन', exit: 'बाहर जाएं' },
+                'mr': { sub: 'स्मार्ट संसाधन व्यवस्थापन', exit: 'बाहेर पडा' },
+                'ta': { sub: 'ஸ்மார்ட் வள மேலாண்மை', exit: 'வெளியேறு' }
+            };
+
+            if (mainTranslates[savedLang]) {
+                document.getElementById('i18n-subtitle').textContent = mainTranslates[savedLang].sub;
+                document.getElementById('i18n-logout').textContent = mainTranslates[savedLang].exit;
+            }
+        });
+    </script>
+</body>
+
+</html>
