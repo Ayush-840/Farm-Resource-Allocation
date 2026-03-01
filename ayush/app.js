@@ -129,11 +129,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const landSize = parseFloat(document.getElementById('landSize').value);
             const waterAvailable = parseFloat(document.getElementById('waterAvailable').value);
             const totalBudget = parseFloat(document.getElementById('totalBudget').value);
-            const soilPh = parseFloat(document.getElementById('soilPh').value);
+            const soilPhInput = document.getElementById('soilPh').value;
+            const soilPh = soilPhInput ? parseFloat(soilPhInput) : null; // Optional field
 
-            // STRICT VALIDATION LAYER
-            if (!state || !district || !block || isNaN(landSize) || isNaN(waterAvailable) || isNaN(totalBudget) || landSize <= 0 || waterAvailable <= 0 || isNaN(soilPh)) {
+            // STRICT VALIDATION LAYER (soilPh is now optional)
+            if (!state || !district || !block || isNaN(landSize) || isNaN(waterAvailable) || isNaN(totalBudget) || landSize <= 0 || waterAvailable <= 0) {
                 formError.classList.remove('hidden');
+                formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // Validate soilPh only if provided
+            if (soilPhInput && (isNaN(soilPh) || soilPh < 4 || soilPh > 9)) {
+                formError.classList.remove('hidden');
+                formError.textContent = 'Please enter a valid pH level between 4 and 9, or leave it empty.';
                 formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
@@ -146,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 month: document.getElementById('month').value,
                 landSize,
                 soilType: document.getElementById('soilType').value,
-                soilPh: soilPh || 6.5,
+                soilPh: soilPh || 6.5, // Default to 6.5 if not provided
                 waterAvailable,
                 totalBudget
             };
@@ -287,42 +296,177 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Real implementation using Open-Meteo (No API key required)
+    // Weather data fetching with OpenWeatherMap API support
     async function fetchWeatherData(stateName) {
-        try {
-            const coords = window.AgriData.indianStates[stateName] || { lat: 20, lon: 77 };
-
-            // Fetch current weather from Open-Meteo
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,precipitation&daily=precipitation_probability_max&timezone=auto&forecast_days=1`;
-
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (!response.ok) throw new Error("API Limit reached or network error");
-
-            return {
-                temp: data.current.temperature_2m,
-                humidity: data.current.relative_humidity_2m,
-                rainfall: data.current.precipitation || 0,
-                rain_probability: data.daily.precipitation_probability_max[0] || 0,
-                isLive: true
-            };
-        } catch (error) {
-            console.warn("Weather API failed, fallback to heuristics:", error);
-            const currentMonth = new Date().getMonth() + 1;
-            let baseTemp = 25;
-            if (currentMonth >= 3 && currentMonth <= 6) baseTemp = 33;
-            if (currentMonth >= 7 && currentMonth <= 10) baseTemp = 28;
-            if (currentMonth >= 11 || currentMonth <= 2) baseTemp = 18;
-
-            return {
-                temp: parseFloat(baseTemp.toFixed(1)),
-                humidity: 60,
-                rainfall: 0,
-                rain_probability: 15,
-                isLive: false
+        const coords = window.AgriData.indianStates[stateName] || { lat: 20, lon: 77 };
+        
+        // Initialize WeatherConfig if not present
+        if (!window.WeatherConfig) {
+            window.WeatherConfig = {
+                OPENWEATHER_API_KEY: 'YOUR_API_KEY',
+                USE_OPENWEATHER: false,
+                FALLBACK_TO_OPENMETEO: true
             };
         }
+        
+        // Try OpenWeatherMap API first if configured
+        if (window.WeatherConfig.USE_OPENWEATHER && 
+            window.WeatherConfig.OPENWEATHER_API_KEY && 
+            window.WeatherConfig.OPENWEATHER_API_KEY !== 'YOUR_API_KEY') {
+            try {
+                console.log('🌤️ Fetching weather from OpenWeatherMap...');
+                const data = await fetchOpenWeatherMapData(coords);
+                console.log('✅ OpenWeatherMap data received');
+                return data;
+            } catch (error) {
+                console.warn("⚠️ OpenWeatherMap API failed, trying fallback:", error.message);
+                // Fall through to fallback
+            }
+        }
+        
+        // Fallback to Open-Meteo (No API key required)
+        if (window.WeatherConfig.FALLBACK_TO_OPENMETEO !== false) {
+            try {
+                console.log('🌤️ Fetching weather from Open-Meteo (fallback)...');
+                const data = await fetchOpenMeteoData(coords);
+                console.log('✅ Open-Meteo data received');
+                return data;
+            } catch (error) {
+                console.warn("⚠️ Open-Meteo API failed, using heuristics:", error.message);
+            }
+        }
+        
+        // Final fallback to heuristics
+        console.log('📊 Using heuristic weather data');
+        return getHeuristicWeatherData();
+    }
+
+    // Fetch weather from OpenWeatherMap One Call API 3.0
+    async function fetchOpenWeatherMapData(coords) {
+        const apiKey = window.WeatherConfig.OPENWEATHER_API_KEY;
+        const { lat, lon } = coords;
+        
+        // OpenWeatherMap One Call API 3.0
+        // exclude parameter: current,minutely,hourly,daily,alerts
+        // We want: current, hourly (for today), daily (for forecast)
+        const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely,alerts&units=metric&appid=${apiKey}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error("Invalid API key. Please check your OpenWeatherMap API key.");
+            } else if (response.status === 429) {
+                throw new Error("API rate limit exceeded. Please try again later.");
+            }
+            throw new Error(`OpenWeatherMap API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Extract current weather
+        const current = data.current;
+        const hourly = data.hourly || [];
+        const daily = data.daily || [];
+        
+        // Calculate rain probability from hourly forecast (next 12 hours)
+        const next12Hours = hourly.slice(0, 12);
+        const rainProbability = next12Hours.length > 0
+            ? Math.round(next12Hours.reduce((sum, h) => sum + (h.pop || 0), 0) / next12Hours.length * 100)
+            : (current.rain ? 100 : 0);
+        
+        // Get rainfall amount (convert from mm if available, or use rain.1h)
+        const rainfall = current.rain ? (current.rain['1h'] || 0) : 0;
+        
+        // Build forecast array for next 7 days
+        const forecast = daily.slice(0, 7).map(day => ({
+            date: new Date(day.dt * 1000),
+            temp: day.temp.day,
+            tempMin: day.temp.min,
+            tempMax: day.temp.max,
+            humidity: day.humidity,
+            rainfall: day.rain || 0,
+            rainProbability: Math.round((day.pop || 0) * 100),
+            description: day.weather[0]?.description || 'Clear',
+            icon: day.weather[0]?.icon || '01d'
+        }));
+        
+        return {
+            temp: Math.round(current.temp),
+            humidity: current.humidity,
+            rainfall: rainfall,
+            rain_probability: rainProbability,
+            isLive: true,
+            source: 'OpenWeatherMap',
+            forecast: forecast,
+            // Additional data
+            feels_like: Math.round(current.feels_like),
+            pressure: current.pressure,
+            wind_speed: current.wind_speed,
+            wind_deg: current.wind_deg,
+            uv_index: current.uvi,
+            visibility: current.visibility ? (current.visibility / 1000).toFixed(1) : null,
+            description: current.weather[0]?.description || 'Clear',
+            icon: current.weather[0]?.icon || '01d'
+        };
+    }
+
+    // Fallback: Fetch weather from Open-Meteo (No API key required)
+    async function fetchOpenMeteoData(coords) {
+        const { lat, lon } = coords;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation&daily=precipitation_probability_max,precipitation_sum&timezone=auto&forecast_days=7`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error("Open-Meteo API error");
+        
+        // Build forecast array
+        const forecast = [];
+        if (data.daily) {
+            for (let i = 0; i < Math.min(7, data.daily.time.length); i++) {
+                forecast.push({
+                    date: new Date(data.daily.time[i]),
+                    temp: data.daily.temperature_2m_max?.[i] || data.current.temperature_2m,
+                    tempMin: data.daily.temperature_2m_min?.[i] || data.current.temperature_2m,
+                    tempMax: data.daily.temperature_2m_max?.[i] || data.current.temperature_2m,
+                    humidity: data.current.relative_humidity_2m,
+                    rainfall: data.daily.precipitation_sum?.[i] || 0,
+                    rainProbability: data.daily.precipitation_probability_max?.[i] || 0,
+                    description: 'Clear',
+                    icon: '01d'
+                });
+            }
+        }
+        
+        return {
+            temp: Math.round(data.current.temperature_2m),
+            humidity: data.current.relative_humidity_2m,
+            rainfall: data.current.precipitation || 0,
+            rain_probability: data.daily.precipitation_probability_max?.[0] || 0,
+            isLive: true,
+            source: 'Open-Meteo',
+            forecast: forecast
+        };
+    }
+
+    // Final fallback: Heuristic weather data
+    function getHeuristicWeatherData() {
+        const currentMonth = new Date().getMonth() + 1;
+        let baseTemp = 25;
+        if (currentMonth >= 3 && currentMonth <= 6) baseTemp = 33;
+        if (currentMonth >= 7 && currentMonth <= 10) baseTemp = 28;
+        if (currentMonth >= 11 || currentMonth <= 2) baseTemp = 18;
+
+        return {
+            temp: parseFloat(baseTemp.toFixed(1)),
+            humidity: 60,
+            rainfall: 0,
+            rain_probability: 15,
+            isLive: false,
+            source: 'Heuristic',
+            forecast: []
+        };
     }
 
     function runAlgorithm(inputs, weatherData) {
@@ -579,8 +723,43 @@ document.addEventListener('DOMContentLoaded', () => {
         // Step C: Calculate Climate Deviation & Probability
         const stateRainData = window.AgriData.historicalRainfall[inputs.state] || window.AgriData.historicalRainfall["Default"];
         const histRain = stateRainData[season] || 500;
-        const forecastRain = weatherData.rainfall * 30; // 30-day extrapolation for deviation logic
-        const deviation = ((forecastRain - histRain) / Math.max(1, histRain)) * 100;
+        
+        // Calculate forecast rain based on current conditions and rain probability
+        // Historical average daily rainfall for the season
+        const daysInMonth = 30;
+        const histDailyAvg = histRain / daysInMonth;
+        
+        // Get current conditions
+        const currentDailyRain = weatherData.rainfall || 0;
+        const rainProbability = Math.max(0, Math.min(100, weatherData.rain_probability || 15));
+        
+        // Estimate monthly forecast:
+        // - Base it on rain probability (higher prob = more rain expected)
+        // - Factor in today's actual rainfall if any
+        // - Use historical patterns as baseline
+        let forecastRain;
+        if (currentDailyRain > 0) {
+            // If it's raining today, estimate based on current rain + probability
+            // Assume if raining today with X% probability, monthly will be higher
+            const todayContribution = currentDailyRain * 2; // Today's rain counts for more
+            const probabilityContribution = histDailyAvg * (rainProbability / 100) * (daysInMonth - 1);
+            forecastRain = todayContribution + probabilityContribution;
+        } else {
+            // If not raining today, estimate based on probability and historical average
+            // Normal probability (30-70%) = near historical average
+            // Low probability (<30%) = below average
+            // High probability (>70%) = above average
+            const probabilityFactor = rainProbability / 50; // 50% = 1.0 (normal), 25% = 0.5 (low), 75% = 1.5 (high)
+            forecastRain = histDailyAvg * daysInMonth * probabilityFactor;
+        }
+        
+        // Clamp forecast to reasonable range (0 to 2x historical)
+        forecastRain = Math.max(0, Math.min(forecastRain, histRain * 2));
+        
+        // Calculate deviation percentage (how much forecast differs from historical)
+        const deviation = histRain > 0 
+            ? Math.round(((forecastRain - histRain) / histRain) * 100)
+            : 0; // If no historical data, show 0% deviation
 
         let failureProb = 0;
         if (deviation < -30) failureProb += 25; // Drought risk
@@ -709,6 +888,22 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextIfExists('wHumid', safeVal(weather.humidity, '%'));
         setTextIfExists('wRain', safeVal(weather.rainfall, ' mm'));
         setTextIfExists('wRainProb', safeVal(weather.rain_probability, '%'));
+        
+        // Show additional weather info if available (from OpenWeatherMap)
+        if (weather.source === 'OpenWeatherMap' && weather.description) {
+            const wImpact = document.getElementById('wImpact');
+            if (wImpact) {
+                let impactText = `Current: ${weather.description}`;
+                if (weather.feels_like) {
+                    impactText += ` | Feels like: ${weather.feels_like}°C`;
+                }
+                if (weather.forecast && weather.forecast.length > 0) {
+                    const tomorrow = weather.forecast[0];
+                    impactText += ` | Tomorrow: ${tomorrow.tempMin}°-${tomorrow.tempMax}°C, ${tomorrow.rainProbability}% rain`;
+                }
+                wImpact.textContent = impactText;
+            }
+        }
 
         const riskBadge = document.getElementById('riskLevelBadge');
         const wImpact = document.getElementById('wImpact');
@@ -1123,6 +1318,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="subsidy-benefit">${s.benefit}</span>
                         </div>
                         <p class="subsidy-desc">${s.description}</p>
+                        ${s.applicationLink ? `
+                            <a href="${s.applicationLink}" target="_blank" rel="noopener noreferrer" class="subsidy-link">
+                                <i class="fas fa-external-link-alt"></i>
+                                <span>Apply Now / More Info</span>
+                            </a>
+                        ` : ''}
                     </div>
                 `).join('');
             } else {

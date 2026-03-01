@@ -191,6 +191,17 @@
                             <span class="value success-text" id="irrigationValue">---</span>
                         </div>
 
+                        <!-- Financial Assistance (Subsidies) - After Profit Analysis -->
+                        <div id="subsidyCard" class="result-card full-width glass-panel mt-4 p-4 animate-in" style="text-align: center;">
+                            <h3 data-translate="subsidies" style="text-align: center;"><i class="fas fa-hand-holding-usd"></i> Financial Assistance
+                                (Subsidies)</h3>
+                            <p class="section-label" style="margin-bottom: 0.5rem; text-align: center;">Schemes based on your Profile</p>
+                            <div id="subsidyList" class="subsidy-list">
+                                <!-- Schemes will be injected here -->
+                                <div class="text-muted" style="font-size: 0.85rem; text-align: center;">Calculating eligibility...</div>
+                            </div>
+                        </div>
+
                         <!-- NEW: Crop Comparison Mode (Collapsible) -->
                         <div id="comparisonSection" class="result-card full-width hidden p-4 animate-in">
                             <h3><i class="fas fa-balance-scale"></i> Crop Comparison Mode</h3>
@@ -273,10 +284,10 @@
 
                         <!-- Specialty Cards -->
                         <!-- ESG & Sustainability Score -->
-                        <div id="sustainabilityCard" class="sustainability-card glass-panel mt-4 p-4 animate-in">
+                        <div id="sustainabilityCard" class="sustainability-card result-card full-width glass-panel mt-4 p-4 animate-in" style="text-align: center;">
                             <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                                <h3 style="margin: 0; color: #10b981;" data-translate="esg_score"><i
+                                style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
+                                <h3 style="margin: 0 0 1rem 0; color: #10b981; text-align: center;" data-translate="esg_score"><i
                                         class="fas fa-leaf"></i> ESG & Sustainability
                                     Score</h3>
                                 <div id="esgBadge" class="badge"
@@ -348,34 +359,24 @@
                             </div>
                         </div>
 
-                        <div id="subsidyCard" class="result-card glass-panel mt-4 p-4 animate-in">
-                            <h3 data-translate="subsidies"><i class="fas fa-hand-holding-usd"></i> Financial Assistance
-                                (Subsidies)</h3>
-                            <p class="section-label" style="margin-bottom: 0.5rem;">Schemes based on your Profile</p>
-                            <div id="subsidyList" class="subsidy-list">
-                                <!-- Schemes will be injected here -->
-                                <div class="text-muted" style="font-size: 0.85rem;">Calculating eligibility...</div>
-                            </div>
-                        </div>
-
-                        <div id="riskCard" class="result-card glass-panel mt-4 p-4 animate-in">
-                            <h3 data-translate="market_risk"><i class="fas fa-chart-area"></i> Market Price Risk Meter
+                        <div id="riskCard" class="result-card full-width glass-panel mt-4 p-4 animate-in" style="text-align: center;">
+                            <h3 data-translate="market_risk" style="text-align: center;"><i class="fas fa-chart-area"></i> Market Price Risk Meter
                             </h3>
-                            <div class="sustainability-grid">
+                            <div class="sustainability-grid" style="justify-content: center; max-width: 600px; margin: 0 auto;">
                                 <div class="sus-metric"><span class="sus-label">Risk Level</span><span class="sus-val"
                                         id="riskLevel">Moderate</span></div>
                                 <div class="sus-metric"><span class="sus-label">Stability Score</span><span
                                         class="sus-val" id="stabilityScore">--/10</span></div>
                             </div>
-                            <div id="riskActionBox" class="conservation-box">
-                                <div class="conservation-title"><i class="fas fa-shield-alt"></i><span>Market
+                            <div id="riskActionBox" class="conservation-box" style="max-width: 700px; margin: 1.5rem auto 0;">
+                                <div class="conservation-title" style="justify-content: center;"><i class="fas fa-shield-alt"></i><span>Market
                                         Strategy</span></div>
-                                <p id="riskActionText" class="conservation-text">Analyzing market volatility patterns
+                                <p id="riskActionText" class="conservation-text" style="text-align: center;">Analyzing market volatility patterns
                                     for your selected crop...</p>
                             </div>
                         </div>
 
-                        <div id="breakEvenCard" class="result-card glass-panel mt-4 p-4 animate-in">
+                        <div id="breakEvenCard" class="result-card full-width glass-panel mt-4 p-4 animate-in">
                             <h3 data-translate="break_even"><i class="fas fa-calculator"></i> Break-even Analysis</h3>
                             <div class="sustainability-grid">
                                 <div class="sus-metric"><span class="sus-label">Cost per Acre</span><span
@@ -396,7 +397,7 @@
                             </div>
                         </div>
 
-                        <div id="soilHealthCard" class="result-card glass-panel mt-4 p-4 animate-in">
+                        <div id="soilHealthCard" class="result-card full-width glass-panel mt-4 p-4 animate-in">
                             <h3 data-translate="soil_health"><i class="fas fa-flask"></i> Soil Health & Fertilizer
                                 Planner</h3>
                             <div class="sustainability-grid">
@@ -426,7 +427,7 @@
                             </div>
                         </div>
 
-                        <div id="climateRiskCard" class="result-card glass-panel mt-4 p-4 animate-in">
+                        <div id="climateRiskCard" class="result-card full-width glass-panel mt-4 p-4 animate-in">
                             <h3 data-translate="climate_risk"><i class="fas fa-cloud-sun-rain"></i> Climate Resilience &
                                 Risk</h3>
                             <div class="sustainability-grid">
@@ -448,7 +449,7 @@
                             </div>
                         </div>
 
-                        <div id="creditCard" class="result-card glass-panel mt-4 p-4 animate-in">
+                        <div id="creditCard" class="result-card full-width glass-panel mt-4 p-4 animate-in">
                             <h3 data-translate="credit_score_title"><i class="fas fa-credit-card"></i> Farmer Credit &
                                 Loan Eligibility</h3>
                             <div class="sustainability-grid">
@@ -471,7 +472,7 @@
                             </div>
                         </div>
 
-                        <div id="mandiConnectCard" class="result-card glass-panel mt-4 p-4 animate-in">
+                        <div id="mandiConnectCard" class="result-card full-width glass-panel mt-4 p-4 animate-in">
                             <h3 data-translate="mandi_connect"><i class="fas fa-truck-loading"></i> Mandi & Buyer
                                 Connect</h3>
                             <div class="sustainability-grid">
@@ -549,6 +550,8 @@
     </div>
 
     <!-- Modular Scripts -->
+    <script src="./api-service.js"></script>
+    <script src="./weather-config.js"></script>
     <script src="./data.js"></script>
     <script src="./app.js"></script>
 </body>

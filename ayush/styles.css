@@ -234,6 +234,36 @@ nav {
     box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.6);
 }
 
+/* Result Card Styling - Ensures proper alignment */
+.result-card {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+    display: block;
+    clear: both;
+}
+
+.result-card.full-width {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Ensure all sections are properly aligned */
+#dashboard {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+#resultsCard {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
 .floating-card {
     width: 100%;
     max-width: 450px;
@@ -833,12 +863,23 @@ input[type="range"]:active::-webkit-slider-thumb {
 }
 
 /* ESG Dashboard & Eco-Classy Aesthetics */
+#sustainabilityCard {
+    text-align: center;
+}
+
+#sustainabilityCard h3 {
+    text-align: center;
+}
+
 .esg-dashboard {
     display: flex;
     gap: 2rem;
     align-items: center;
+    justify-content: center;
     background: rgba(16, 185, 129, 0.03);
     padding: 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
     border-radius: 16px;
     border: 1px solid rgba(16, 185, 129, 0.1);
 }
@@ -1323,6 +1364,14 @@ body.farmer-mode .hero-content {
     background: radial-gradient(circle at center, rgba(16, 185, 129, 0.05), transparent 70%);
 }
 
+#riskCard {
+    text-align: center;
+}
+
+#riskCard h3 {
+    text-align: center;
+}
+
 .sustainability-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1392,11 +1441,28 @@ body.farmer-mode .hero-content {
 }
 
 /* --- SUBSIDY ENGINE STYLES --- */
+#subsidyCard {
+    text-align: center;
+}
+
+#subsidyCard h3 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+#subsidyCard .section-label {
+    text-align: center;
+}
+
 .subsidy-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     margin-top: 1rem;
+    align-items: center;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .subsidy-item {
@@ -1405,6 +1471,9 @@ body.farmer-mode .hero-content {
     border-radius: 12px;
     padding: 1.2rem;
     transition: all 0.3s ease;
+    width: 100%;
+    max-width: 700px;
+    text-align: left;
 }
 
 .subsidy-item:hover {
@@ -1438,6 +1507,33 @@ body.farmer-mode .hero-content {
     font-size: 0.85rem;
     color: var(--text-muted);
     line-height: 1.4;
+}
+
+.subsidy-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    color: var(--highlight);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+.subsidy-link:hover {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: var(--highlight);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+}
+
+.subsidy-link i {
+    font-size: 0.8rem;
 }
 
 /* =========================================================================

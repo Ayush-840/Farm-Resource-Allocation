@@ -251,25 +251,29 @@ const governmentSchemes = [
         name: "PM-KISAN",
         description: "Income support of ₹6,000/year for all landholding farmer families.",
         eligibility: (inputs) => true, // All farmers
-        benefit: "₹2,000 every 4 months"
+        benefit: "₹2,000 every 4 months",
+        applicationLink: "https://pmkisan.gov.in/"
     },
     {
         name: "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
         description: "Crop insurance against non-preventable natural risks.",
         eligibility: (inputs) => true, // All crops/states generally covered
-        benefit: "Risk cover based on sum insured"
+        benefit: "Risk cover based on sum insured",
+        applicationLink: "https://pmfby.gov.in/"
     },
     {
         name: "Per Drop More Crop (Micro Irrigation)",
         description: "Subsidy for Drip and Sprinkler irrigation systems.",
         eligibility: (inputs) => inputs.water_daily < 3000, // Suggest for low water
-        benefit: "45% to 55% subsidy on cost"
+        benefit: "45% to 55% subsidy on cost",
+        applicationLink: "https://pdmc.da.gov.in/"
     },
     {
         name: "Sub-Mission on Seeds and Planting Material",
         description: "Subsidy on certified seeds to increase production.",
         eligibility: (inputs) => ["Rice (Paddy)", "Wheat", "Maize"].includes(inputs.crop),
-        benefit: "Verified seed discount up to 50%"
+        benefit: "Verified seed discount up to 50%",
+        applicationLink: "https://www.myscheme.gov.in/schemes/ky-smsp"
     },
     {
         name: "State Special: Rythu Bandhu (Telangana)",

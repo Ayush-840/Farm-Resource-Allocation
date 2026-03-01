@@ -93,6 +93,21 @@
       text-decoration: none;
       font-size: 0.9rem;
     }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #resendOtpBtn {
+      font-size: 0.85rem;
+      padding: 0.6rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 
@@ -110,28 +125,77 @@
 
       <div id="otpStep" class="hidden" style="display: none;">
         <div class="form-group">
-          <input type="password" id="otp" placeholder=" " pattern="[0-9]{4,6}" title="4 to 6 digit OTP" />
+          <input type="password" id="otp" placeholder=" " pattern="[0-9]{4,6}" title="4 to 6 digit OTP" maxlength="6" />
           <label for="otp">Enter OTP</label>
         </div>
         <button type="submit" class="submit-btn">Verify & Sign In</button>
+        <button type="button" id="resendOtpBtn" class="submit-btn" style="margin-top: 0.5rem; background: rgba(255, 255, 255, 0.1);" onclick="resendOtp()">Resend OTP</button>
       </div>
 
       <p id="messageBox" style="font-size: 0.8rem; text-align: center; margin-top: 10px;"></p>
+      <p id="otpTimer" style="font-size: 0.75rem; text-align: center; margin-top: 5px; color: #ccc; display: none;"></p>
     </form>
     <a href="index.html" class="back-link">← Back to Home</a>
   </div>
 
   <script>
+    // Check if user is already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+      const authToken = localStorage.getItem('agri_authToken');
+      const user = localStorage.getItem('agri_user');
+      
+      if (authToken && user) {
+        try {
+          const userData = JSON.parse(user);
+          console.log('User already logged in:', userData);
+          // Optionally redirect or show message
+          // window.location.href = "index.html";
+        } catch (e) {
+          // Invalid user data, clear it
+          localStorage.removeItem('agri_authToken');
+          localStorage.removeItem('agri_user');
+          localStorage.removeItem('agri_userId');
+        }
+      }
+    });
+
     const API_BASE = "http://localhost:3000/api/auth";
     const phoneStep = document.getElementById("phoneStep");
     const otpStep = document.getElementById("otpStep");
     const loginForm = document.getElementById("loginForm");
     const messageBox = document.getElementById("messageBox");
+    const otpTimer = document.getElementById("otpTimer");
     const sendOtpBtn = document.getElementById("sendOtpBtn");
+    const resendOtpBtn = document.getElementById("resendOtpBtn");
+    let otpTimerInterval = null;
+    let currentPhone = "";
 
     function displayMessage(msg, isError = false) {
       messageBox.textContent = msg;
       messageBox.style.color = isError ? "#ff6b6b" : "#10b981";
+    }
+
+    function startOtpTimer(seconds = 300) {
+      let timeLeft = seconds;
+      otpTimer.style.display = "block";
+      
+      if (otpTimerInterval) {
+        clearInterval(otpTimerInterval);
+      }
+      
+      otpTimerInterval = setInterval(() => {
+        const minutes = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        otpTimer.textContent = `OTP expires in ${minutes}:${secs.toString().padStart(2, '0')}`;
+        
+        if (timeLeft <= 0) {
+          clearInterval(otpTimerInterval);
+          otpTimer.textContent = "OTP expired. Please request a new one.";
+          otpTimer.style.color = "#ff6b6b";
+          resendOtpBtn.disabled = false;
+        }
+        timeLeft--;
+      }, 1000);
     }
 
     async function sendOtp() {
@@ -143,6 +207,7 @@
         return;
       }
 
+      currentPhone = phone;
       sendOtpBtn.disabled = true;
       sendOtpBtn.textContent = "Sending...";
 
@@ -161,7 +226,17 @@
           phoneStep.style.display = "none";
           otpStep.style.display = "block";
           document.getElementById("otp").required = true;
-          displayMessage(data.message, false);
+          document.getElementById("otp").focus();
+          displayMessage(data.message || "OTP sent successfully!", false);
+          
+          // Start timer
+          startOtpTimer(data.expiresIn || 300);
+          resendOtpBtn.disabled = true;
+          
+          // Enable resend after 30 seconds
+          setTimeout(() => {
+            resendOtpBtn.disabled = false;
+          }, 30000);
         } else {
           displayMessage(data.error || "Failed to send OTP.", true);
           sendOtpBtn.disabled = false;
@@ -169,9 +244,49 @@
         }
       } catch (error) {
         console.error("Error:", error);
-        displayMessage("Network error. Is the backend running?", true);
+        displayMessage("Network error. Is the backend running on http://localhost:3000?", true);
         sendOtpBtn.disabled = false;
         sendOtpBtn.textContent = "Send OTP";
+      }
+    }
+
+    async function resendOtp() {
+      if (!currentPhone) {
+        displayMessage("Please enter your phone number first.", true);
+        return;
+      }
+
+      resendOtpBtn.disabled = true;
+      resendOtpBtn.textContent = "Resending...";
+
+      try {
+        const response = await fetch(`${API_BASE}/resend-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: currentPhone })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          displayMessage(data.message || "OTP resent successfully!", false);
+          startOtpTimer(data.expiresIn || 300);
+          
+          // Disable resend for 30 seconds
+          setTimeout(() => {
+            resendOtpBtn.disabled = false;
+            resendOtpBtn.textContent = "Resend OTP";
+          }, 30000);
+        } else {
+          displayMessage(data.error || "Failed to resend OTP.", true);
+          resendOtpBtn.disabled = false;
+          resendOtpBtn.textContent = "Resend OTP";
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        displayMessage("Network error. Please try again.", true);
+        resendOtpBtn.disabled = false;
+        resendOtpBtn.textContent = "Resend OTP";
       }
     }
 
@@ -202,17 +317,28 @@
 
         const data = await response.json();
 
-        if (response.ok) {
+        if (response.ok && data.success) {
           displayMessage("Login Successful! Redirecting...", false);
-          // Store token and mock session
+          
+          // Store token and user data in localStorage
           localStorage.setItem('agri_authToken', data.token);
           localStorage.setItem('agri_user', JSON.stringify(data.user));
+          localStorage.setItem('agri_userId', data.user._id);
+          
+          // Clear OTP timer
+          if (otpTimerInterval) {
+            clearInterval(otpTimerInterval);
+          }
+          otpTimer.style.display = "none";
+
+          // Log user creation/login
+          console.log("✅ User logged in:", data.user);
 
           setTimeout(() => {
             window.location.href = "index.html";
           }, 1000);
         } else {
-          displayMessage(data.error || "Invalid OTP.", true);
+          displayMessage(data.error || "Invalid OTP. Please try again.", true);
           submitBtn.disabled = false;
           submitBtn.textContent = "Verify & Sign In";
         }
@@ -224,6 +350,7 @@
       }
     });
   </script>
+  <script src="./api-service.js"></script>
 </body>
 
 </html>
