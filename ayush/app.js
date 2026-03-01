@@ -30,71 +30,75 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeBlockAPI();
 
     // Populate districts based on state
-    stateSelect.addEventListener('change', () => {
-        const selectedState = stateSelect.value;
-        const districts = window.AgriData.stateDistricts[selectedState] || [];
+    if (stateSelect) {
+        stateSelect.addEventListener('change', () => {
+            const selectedState = stateSelect.value;
+            const districts = window.AgriData.stateDistricts[selectedState] || [];
 
-        // Clear existing options
-        districtSelect.innerHTML = '<option value="" disabled selected>Select District</option>';
-        blockSelect.innerHTML = '<option value="" disabled selected>Select Block</option>';
-        blockSelect.disabled = true;
+            // Clear existing options
+            districtSelect.innerHTML = '<option value="" disabled selected>Select District</option>';
+            blockSelect.innerHTML = '<option value="" disabled selected>Select Block</option>';
+            blockSelect.disabled = true;
 
-        if (districts.length > 0) {
-            districts.forEach(dist => {
-                const option = document.createElement('option');
-                option.value = dist;
-                option.textContent = dist;
-                districtSelect.appendChild(option);
-            });
-            districtSelect.disabled = false;
-        } else {
-            districtSelect.disabled = true;
-        }
-    });
+            if (districts.length > 0) {
+                districts.forEach(dist => {
+                    const option = document.createElement('option');
+                    option.value = dist;
+                    option.textContent = dist;
+                    districtSelect.appendChild(option);
+                });
+                districtSelect.disabled = false;
+            } else {
+                districtSelect.disabled = true;
+            }
+        });
+    }
 
     // Populate blocks based on district
-    districtSelect.addEventListener('change', () => {
-        const selectedDistrict = districtSelect.value.trim().toUpperCase();
-        let blocks = [];
+    if (districtSelect) {
+        districtSelect.addEventListener('change', () => {
+            const selectedDistrict = districtSelect.value.trim().toUpperCase();
+            let blocks = [];
 
-        // 1. Try Comprehensive API Data
-        if (nationwideBlockMap.length > 0) {
-            const distData = nationwideBlockMap.find(d => d.name.toUpperCase() === selectedDistrict);
-            if (distData && distData.blockList) {
-                blocks = distData.blockList.map(b => b.name);
+            // 1. Try Comprehensive API Data
+            if (nationwideBlockMap.length > 0) {
+                const distData = nationwideBlockMap.find(d => d.name.toUpperCase() === selectedDistrict);
+                if (distData && distData.blockList) {
+                    blocks = distData.blockList.map(b => b.name);
+                }
             }
-        }
 
-        // 2. Try Local Fallback (Specific agricultural hubs in data.js)
-        if (blocks.length === 0) {
-            const localKey = Object.keys(window.AgriData.districtBlocks).find(k => k.toUpperCase() === selectedDistrict);
-            if (localKey) {
-                blocks = window.AgriData.districtBlocks[localKey];
+            // 2. Try Local Fallback (Specific agricultural hubs in data.js)
+            if (blocks.length === 0) {
+                const localKey = Object.keys(window.AgriData.districtBlocks).find(k => k.toUpperCase() === selectedDistrict);
+                if (localKey) {
+                    blocks = window.AgriData.districtBlocks[localKey];
+                }
             }
-        }
 
-        // 3. Precise Safeguard: If no blocks found, use a respectful placeholder or generic 'Block'
-        if (blocks.length === 0) {
-            const displayDist = districtSelect.value;
-            blocks = [`${displayDist} Block`, `Main Tehsil`];
-        }
+            // 3. Precise Safeguard: If no blocks found, use a respectful placeholder or generic 'Block'
+            if (blocks.length === 0) {
+                const displayDist = districtSelect.value;
+                blocks = [`${displayDist} Block`, `Main Tehsil`];
+            }
 
-        // Clear existing options
-        blockSelect.innerHTML = '<option value="" disabled selected>Select Block</option>';
+            // Clear existing options
+            blockSelect.innerHTML = '<option value="" disabled selected>Select Block</option>';
 
-        if (blocks.length > 0) {
-            // Sort blocks alphabetically for better UX
-            blocks.sort().forEach(b => {
-                const option = document.createElement('option');
-                option.value = b;
-                option.textContent = b;
-                blockSelect.appendChild(option);
-            });
-            blockSelect.disabled = false;
-        } else {
-            blockSelect.disabled = true;
-        }
-    });
+            if (blocks.length > 0) {
+                // Sort blocks alphabetically for better UX
+                blocks.sort().forEach(b => {
+                    const option = document.createElement('option');
+                    option.value = b;
+                    option.textContent = b;
+                    blockSelect.appendChild(option);
+                });
+                blockSelect.disabled = false;
+            } else {
+                blockSelect.disabled = true;
+            }
+        });
+    }
 
     // 2. DOM Elements
     const farmForm = document.getElementById('farmForm');
@@ -104,6 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsContent = document.getElementById('resultsContent');
     const formError = document.getElementById('formError'); // Moved to shared scope
     const closeModal = document.querySelector('.close-modal');
+    const viewJsonBtn = document.getElementById('viewJsonBtn');
+    const jsonModal = document.getElementById('jsonModal');
 
     let currentApiPayload = {};
     let lastInputs = {};
@@ -111,41 +117,57 @@ document.addEventListener('DOMContentLoaded', () => {
     let simulationDebounceTimer;
 
     // 3. Form Submission
-    farmForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        formError.classList.add('hidden');
+    if (farmForm) {
+        farmForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            formError.classList.add('hidden');
 
-        // Extract Constraints safely
-        const state = document.getElementById('state').value;
-        const district = document.getElementById('district').value;
-        const block = document.getElementById('block').value;
-        const landSize = parseFloat(document.getElementById('landSize').value);
-        const waterAvailable = parseFloat(document.getElementById('waterAvailable').value);
-        const totalBudget = parseFloat(document.getElementById('totalBudget').value);
-        const soilPh = parseFloat(document.getElementById('soilPh').value);
+            // Extract Constraints safely
+            const state = document.getElementById('state').value;
+            const district = document.getElementById('district').value;
+            const block = document.getElementById('block').value;
+            const landSize = parseFloat(document.getElementById('landSize').value);
+            const waterAvailable = parseFloat(document.getElementById('waterAvailable').value);
+            const totalBudget = parseFloat(document.getElementById('totalBudget').value);
+            const soilPh = parseFloat(document.getElementById('soilPh').value);
 
-        // STRICT VALIDATION LAYER
-        if (!state || !district || !block || isNaN(landSize) || isNaN(waterAvailable) || isNaN(totalBudget) || landSize <= 0 || waterAvailable <= 0 || isNaN(soilPh)) {
-            formError.classList.remove('hidden');
-            formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
+            // STRICT VALIDATION LAYER
+            if (!state || !district || !block || isNaN(landSize) || isNaN(waterAvailable) || isNaN(totalBudget) || landSize <= 0 || waterAvailable <= 0 || isNaN(soilPh)) {
+                formError.classList.remove('hidden');
+                formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            const inputs = {
+                state,
+                district,
+                block,
+                village: document.getElementById('village') ? document.getElementById('village').value : "Default Village",
+                month: document.getElementById('month').value,
+                landSize,
+                soilType: document.getElementById('soilType').value,
+                soilPh: soilPh || 6.5,
+                waterAvailable,
+                totalBudget
+            };
+
+            // Save to session and navigate
+            sessionStorage.setItem('agri_inputs', JSON.stringify(inputs));
+            window.location.href = "results.html";
+        });
+    }
+
+    // Auto-load on results page
+    if (resultsContent && !farmForm) {
+        const savedInputs = sessionStorage.getItem('agri_inputs');
+        if (savedInputs) {
+            const inputs = JSON.parse(savedInputs);
+            startOptimization(inputs);
+        } else {
+            // Redirect back if no data
+            window.location.href = "index.html";
         }
-
-        const inputs = {
-            state,
-            district,
-            block,
-            village: document.getElementById('village') ? document.getElementById('village').value : "Default Village",
-            month: document.getElementById('month').value,
-            landSize,
-            soilType: document.getElementById('soilType').value,
-            soilPh: soilPh || 6.5,
-            waterAvailable,
-            totalBudget
-        };
-
-        startOptimization(inputs);
-    });
+    }
 
     // Toggle for Comparison Mode
     const compareToggle = document.getElementById('compareToggle');
@@ -202,11 +224,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Optimization Engine & Weather Fetch
     async function startOptimization(inputs) {
         // UI State
-        optimizeBtn.disabled = true;
-        optimizeBtn.textContent = "Analyzing seasonal dynamics...";
-        emptyState.classList.add('hidden');
-        resultsContent.classList.add('hidden');
-        loadingState.classList.remove('hidden');
+        if (optimizeBtn) {
+            optimizeBtn.disabled = true;
+            optimizeBtn.textContent = "Analyzing seasonal dynamics...";
+        }
+        if (emptyState) emptyState.classList.add('hidden');
+        if (resultsContent) resultsContent.classList.add('hidden');
+        if (loadingState) loadingState.classList.remove('hidden');
 
         try {
             // Fetch Weather with a strict 1.5s timeout for performance
@@ -237,6 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
             initSimulation(inputs);
 
             try {
+                if (loadingState) loadingState.classList.add('hidden');
+                if (resultsContent) {
+                    resultsContent.classList.remove('hidden');
+                    resultsContent.scrollIntoView({ behavior: 'smooth' });
+                }
                 showResults(results, weatherData, inputs);
             } catch (renderError) {
                 console.error("showResults crashed:", renderError);
@@ -244,12 +273,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Critical Engine Failure:", error);
-            loadingState.classList.add('hidden');
+            if (loadingState) loadingState.classList.add('hidden');
             // Show the REAL error to help diagnose
-            formError.querySelector('span').textContent = "Error: " + error.message;
-            formError.classList.remove('hidden');
-            optimizeBtn.disabled = false;
-            optimizeBtn.textContent = "Run Engine";
+            if (formError) {
+                formError.querySelector('span').textContent = "Error: " + error.message;
+                formError.classList.remove('hidden');
+            }
+            if (optimizeBtn) {
+                optimizeBtn.disabled = false;
+                optimizeBtn.textContent = "Run Engine";
+            }
+            if (!formError) alert("Engine Error: " + error.message);
         }
     }
 
@@ -320,7 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Cost approximation (varies heavily, standardizing to ₹35k/acre for simplicity)
         const avgCostPerAcre = 35000;
         let affordableAcres = inputs.totalBudget / avgCostPerAcre;
-        let actualAcresToFarm = Math.min(inputs.landSize, affordableAcres);
+        // Do not strictly limit acres by budget to near-zero, otherwise all yields/costs scale to 0.
+        // Assume they can seek financing if budget is too low (this prevents dashboard breaking)
+        let actualAcresToFarm = inputs.landSize;
         let actualCost = actualAcresToFarm * avgCostPerAcre;
 
         // Step B: Calculate metrics for each crop and rank them by Profit and Weather Penalty
@@ -331,13 +367,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const rainFactor = Math.min((weatherData.rainfall * 50), crop.water_req * 0.4); // max 40% reduction
             const adjustedWaterNeed = Math.max(0, crop.water_req - rainFactor) * actualAcresToFarm;
 
-            // Limit acres if water constraint is hit
-            let waterConstrainedAcres = actualAcresToFarm;
+            // Determine water efficiency for ESG scoring
             let waterEfficiency = 100;
             if (adjustedWaterNeed > inputs.waterAvailable) {
-                // If we need more water than available, we can't farm all acres
-                waterConstrainedAcres = inputs.waterAvailable / Math.max(1, (crop.water_req - rainFactor));
-                waterEfficiency = 100; // using all water
+                // If we need more water than available, flag it but don't force acres to 0.
+                waterEfficiency = 120; // Over-utilization penalty
             } else {
                 waterEfficiency = (totalWaterNeeded > 0) ? (adjustedWaterNeed / inputs.waterAvailable) * 100 : 0;
             }
@@ -353,8 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 impact_message = `Sub-optimal temperatures detected. Expect slight delayed growth for ${crop.name}.`;
             }
 
-            // Final bounds based on water constraint
-            let finalAcres = Math.min(actualAcresToFarm, waterConstrainedAcres);
+            // Final bounds based on chosen land (don't strictly limit by water/budget to prevent zeroing output)
+            let finalAcres = actualAcresToFarm;
             let finalCost = finalAcres * avgCostPerAcre;
             let finalYield = (crop.yield_per_acre * finalAcres) * (1 - weatherPenalty) * (1 - (crop.phPenalty || 0));
             let revenue = finalYield * crop.est_price;
@@ -609,15 +643,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Sustainability already handled above
 
+        // --- NEW: Government Subsidies Filter ---
+        // Expose crop name to inputs context for scheme evaluation
+        const schemeInputs = { ...inputs, crop: bestCrop.name, water_daily: (bestCrop.water_req * actualAcresToFarm) };
+        result.subsidies = (window.AgriData.governmentSchemes || []).filter(scheme => {
+            try {
+                return scheme.eligibility(schemeInputs);
+            } catch (e) {
+                return false;
+            }
+        });
+
         return result;
     }
 
     // 5. Output Rendering
     function showResults(data, weather, inputs) {
-        loadingState.classList.add('hidden');
-        resultsContent.classList.remove('hidden');
-        optimizeBtn.disabled = false;
-        optimizeBtn.textContent = "Run Engine";
+        if (loadingState) loadingState.classList.add('hidden');
+        if (resultsContent) resultsContent.classList.remove('hidden');
+        if (optimizeBtn) {
+            optimizeBtn.disabled = false;
+            optimizeBtn.textContent = "Run Engine";
+        }
 
         // Reset Comparison Toggle
         const compareToggle = document.getElementById('compareToggle');
@@ -742,7 +789,258 @@ document.addEventListener('DOMContentLoaded', () => {
             if (waterPct > 90) waterBar.classList.add('danger');
             else if (waterPct > 75) waterBar.classList.add('warning');
         }
+
+        // --- NEW: 10x10 Farm Grid Initialization ---
+        const farmGridContainer = document.getElementById('farm-grid');
+        if (farmGridContainer) {
+            farmGridContainer.innerHTML = ''; // Clear previous
+            const totalCells = 100;
+
+            // Calculate number of cells for each crop based on land utilization
+            // We use the same p1, p2, p3 proportions but scaled to the actual land utilized percentage (landPct)
+            const countP1 = Math.floor((p1 * landPct) / 100);
+            const countP2 = Math.floor((p2 * landPct) / 100);
+            const countP3 = Math.floor((p3 * landPct) / 100);
+            const countUnallocated = totalCells - (countP1 + countP2 + countP3);
+
+            // Create array of cell classes
+            let distribution = [];
+            for (let i = 0; i < countP1; i++) distribution.push('wheat'); // Primary uses wheat color style
+            for (let i = 0; i < countP2; i++) distribution.push('corn');  // Alt1 uses corn color style
+            for (let i = 0; i < countP3; i++) distribution.push('soy');   // Alt2 uses soy color style
+            while (distribution.length < totalCells) distribution.push('unallocated');
+
+            // Sort to group them visually
+            distribution.sort((a, b) => {
+                const order = { 'unallocated': 0, 'wheat': 1, 'corn': 2, 'soy': 3 };
+                return order[a] - order[b];
+            });
+
+            // Create DOM elements and animate
+            distribution.forEach((cellType, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell'; // Start neutral
+                farmGridContainer.appendChild(cell);
+
+                // Animate appearance
+                setTimeout(() => {
+                    if (cellType !== 'unallocated') {
+                        cell.className = `grid-cell cell-${cellType}`;
+                    }
+                    cell.style.transform = 'scale(1)';
+                    cell.style.opacity = '1';
+                }, index * 10); // 10ms stagger
+            });
+        }
         // ---------------------------------
+
+        /* =========================================================================
+           IOT SENSOR INTEGRATION (HACKATHON FEATURE)
+           ========================================================================= */
+        // Extract primary crop for IoT alerts
+        const primaryCropForIoT = rec.name || 'N/A';
+        setTextIfExists('outCropName', primaryCropForIoT);
+
+        const sensorDataStr = sessionStorage.getItem('agri_sensor_data');
+        if (sensorDataStr) {
+            try {
+                const sensorData = JSON.parse(sensorDataStr);
+                const dashboardContainer = document.getElementById('iotDashboardContainer');
+
+                if (sensorData && sensorData.length > 0 && dashboardContainer) {
+                    dashboardContainer.style.display = 'block';
+
+                    // 1. Process Data for Charts (Sub-sample for performance if needed, or take daily averages)
+                    // For 336 hourly points, let's take every 12th point (twice a day) to keep the chart clean
+                    const chartData = sensorData.filter((_, i) => i % 12 === 0);
+                    const labels = chartData.map(d => {
+                        const date = new Date(d.timestamp);
+                        return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`;
+                    });
+
+                    // 2. Render Moisture Chart
+                    const ctxMoisture = document.getElementById('moistureChart');
+                    if (ctxMoisture) {
+                        new Chart(ctxMoisture, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Moisture (%)',
+                                    data: chartData.map(d => d.moisture),
+                                    borderColor: '#3b82f6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { labels: { color: '#cbd5e1' } } },
+                                scales: {
+                                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                                }
+                            }
+                        });
+                    }
+
+                    // 3. Render Nutrient/pH Chart
+                    const ctxNutrient = document.getElementById('nutrientChart');
+                    if (ctxNutrient) {
+                        new Chart(ctxNutrient, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                        label: 'pH Level',
+                                        data: chartData.map(d => d.ph),
+                                        borderColor: '#10b981',
+                                        tension: 0.4,
+                                        yAxisID: 'y'
+                                    },
+                                    {
+                                        label: 'Nitrogen (ppm)',
+                                        data: chartData.map(d => d.nitrogen),
+                                        borderColor: '#f59e0b',
+                                        borderDash: [5, 5],
+                                        tension: 0.4,
+                                        yAxisID: 'y1'
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { labels: { color: '#cbd5e1' } } },
+                                scales: {
+                                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                                    y: { type: 'linear', display: true, position: 'left', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#10b981' } },
+                                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#f59e0b' } }
+                                }
+                            }
+                        });
+                    }
+
+                    // 4. Rule-Based Smart Alerts Logic
+                    // Based on precise SoilFusion Agronomic Thresholds
+                    const alertsList = document.getElementById('iotAlertsList');
+                    let plantingScore = 85; // Base score
+                    const alerts = [];
+
+                    // Calculate recent 24h average for current conditions
+                    const recentData = sensorData.slice(-24);
+                    const avgMoisture = recentData.reduce((sum, d) => sum + parseFloat(d.moisture), 0) / 24;
+                    const avgPH = recentData.reduce((sum, d) => sum + parseFloat(d.ph), 0) / 24;
+                    const avgNitrogen = recentData.reduce((sum, d) => sum + parseFloat(d.nitrogen), 0) / 24;
+                    const avgTemp = recentData.reduce((sum, d) => sum + parseFloat(d.temperature), 0) / 24;
+
+                    // Calculate 7-day rolling averages (last 168 hours) for Anomaly Detection
+                    const last7Days = sensorData.slice(-168);
+                    const avgMoisture7d = last7Days.reduce((sum, d) => sum + parseFloat(d.moisture), 0) / 168;
+
+                    // Evaluate Moisture (Optimal: 25-40%)
+                    if (avgMoisture < 15) {
+                        alerts.push({ type: 'critical', title: 'Severe Drought Stress', desc: `Moisture critically low (${avgMoisture.toFixed(1)}%). Immediate irrigation required.` });
+                        plantingScore -= 30;
+                    } else if (avgMoisture > 50) {
+                        alerts.push({ type: 'critical', title: 'Waterlogging Risk', desc: `Moisture critically high (${avgMoisture.toFixed(1)}%). Risk of root asphyxiation.` });
+                        plantingScore -= 30;
+                    } else if ((avgMoisture >= 15 && avgMoisture < 25) || (avgMoisture > 40 && avgMoisture <= 50)) {
+                        alerts.push({ type: 'warning', title: 'Suboptimal Moisture', desc: `Moisture (${avgMoisture.toFixed(1)}%) in caution zone. Monitor hydration.` });
+                        plantingScore -= 10;
+                    }
+
+                    // Anomaly Rule: Sudden change >20% from 7-day rolling average
+                    const moistureChangePct = Math.abs((avgMoisture - avgMoisture7d) / avgMoisture7d);
+                    if (moistureChangePct > 0.20) {
+                        alerts.push({ type: 'warning', title: 'Moisture Anomaly Detected', desc: `Sudden >20% fluctuation in moisture compared to 7-day average. Verify sensors or irrigation.` });
+                        plantingScore -= 15;
+                    }
+
+                    // Evaluate pH (Optimal: 6.0-7.5)
+                    if (avgPH < 5.5) {
+                        alerts.push({ type: 'critical', title: 'High Acidity', desc: `pH critically low (${avgPH.toFixed(1)}). Soil too acidic, severe nutrient lockout risk.` });
+                        plantingScore -= 25;
+                    } else if (avgPH > 8.0) {
+                        alerts.push({ type: 'critical', title: 'High Alkalinity', desc: `pH critically high (${avgPH.toFixed(1)}). Immediate corrective action required.` });
+                        plantingScore -= 25;
+                    } else if ((avgPH >= 5.5 && avgPH < 6.0) || (avgPH > 7.5 && avgPH <= 8.0)) {
+                        alerts.push({ type: 'warning', title: 'Marginal pH', desc: `Current pH is ${avgPH.toFixed(1)}. Approaching stress levels.` });
+                        plantingScore -= 10;
+                    }
+
+                    // Evaluate Nitrogen (Optimal: 200-500 ppm)
+                    if (avgNitrogen < 100) {
+                        alerts.push({ type: 'critical', title: 'Severe Nitrogen Deficiency', desc: `Nitrogen depleted (${avgNitrogen.toFixed(0)} ppm). Growth severely limited.` });
+                        plantingScore -= 25;
+                    } else if (avgNitrogen > 800) {
+                        alerts.push({ type: 'critical', title: 'Nitrogen Excess', desc: `Nitrogen too high (${avgNitrogen.toFixed(0)} ppm). Fertilizer burn risk.` });
+                        plantingScore -= 25;
+                    } else if ((avgNitrogen >= 100 && avgNitrogen < 200) || (avgNitrogen > 500 && avgNitrogen <= 800)) {
+                        alerts.push({ type: 'warning', title: 'Suboptimal Nitrogen', desc: `Nitrogen level (${avgNitrogen.toFixed(0)} ppm) requires attention.` });
+                        plantingScore -= 10;
+                    }
+
+                    // Evaluate Temp (Optimal: 15-30C)
+                    if (avgTemp < 10 || avgTemp > 40) {
+                        alerts.push({ type: 'critical', title: 'Extreme Soil Temperature', desc: `Soil temp (${avgTemp.toFixed(1)}°C) limits growth.` });
+                        plantingScore -= 15;
+                    } else if ((avgTemp >= 10 && avgTemp < 15) || (avgTemp > 30 && avgTemp <= 40)) {
+                        alerts.push({ type: 'warning', title: 'Marginal Temperature', desc: `Soil temp (${avgTemp.toFixed(1)}°C) is outside ideal range.` });
+                        plantingScore -= 5;
+                    }
+
+                    // Populate Alerts HTML
+                    if (alerts.length === 0) {
+                        alertsList.innerHTML = `
+                            <div class="iot-alert-item info">
+                                <span class="iot-alert-title">Optimal Soil Health</span>
+                                <span class="iot-alert-desc">All parameters (pH, Moisture, N, Temp) are stable within ideal agronomic ranges for ${primaryCropForIoT}.</span>
+                            </div>
+                        `;
+                    } else {
+                        alertsList.innerHTML = alerts.map(a => `
+                            <div class="iot-alert-item ${a.type}">
+                                <span class="iot-alert-title">${a.title}</span>
+                                <span class="iot-alert-desc">${a.desc}</span>
+                            </div>
+                        `).join('');
+                    }
+
+                    // 5. Planting Window Recommendation
+                    const plantingContainer = document.getElementById('iotPlantingWindow');
+                    let windowHtml = '';
+
+                    if (plantingScore >= 80) {
+                        windowHtml = `
+                            <div class="planting-score">${plantingScore}</div>
+                            <div class="planting-label">High Confidence</div>
+                            <div class="planting-suggestion" style="color: var(--status-safe);">Excellent conditions. Plant within next 3-5 days.</div>
+                        `;
+                    } else if (plantingScore >= 50) {
+                        windowHtml = `
+                            <div class="planting-score" style="color: var(--status-moderate);">${plantingScore}</div>
+                            <div class="planting-label">Moderate Confidence</div>
+                            <div class="planting-suggestion" style="color: var(--status-moderate);">Hold off planting. Address soil alerts first.</div>
+                        `;
+                    } else {
+                        windowHtml = `
+                            <div class="planting-score" style="color: var(--status-critical);">${plantingScore}</div>
+                            <div class="planting-label">Low Confidence</div>
+                            <div class="planting-suggestion" style="color: var(--status-critical);">Unsafe to plant. High risk of crop failure.</div>
+                        `;
+                    }
+                    plantingContainer.innerHTML = windowHtml;
+                }
+            } catch (e) {
+                console.error("Error parsing sensor data for dashboard:", e);
+            }
+        }
+
+        // --- End IoT Integration ---
 
         // Render ESG & Sustainability Intelligence
         const sunData = data.sustainability;
@@ -762,25 +1060,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sunCard && sunData) {
             // Update Text & Bars
             if (sunScoreText) sunScoreText.textContent = `${sunData.score}%`;
-            if (esgCircle) esgCircle.style.strokeDasharray = `${sunData.score}, 100`;
+            if (esgCircle) {
+                // Defer to allow CSS transition to paint from 0
+                setTimeout(() => {
+                    esgCircle.style.strokeDasharray = `${sunData.score}, 100`;
+                }, 100);
+            }
             if (esgBadge) esgBadge.textContent = `ESG Rating: ${sunData.investor_rating}`;
 
             if (carbonVal) carbonVal.textContent = sunData.carbon_footprint;
             if (carbonBar) {
-                const carbonPct = Math.min(100, (parseInt(sunData.carbon_footprint.replace(/[^\d]/g, '')) / (window.AgriData.ESG_CONSTANTS.CARBON_BENCHMARK * inputs.landSize)) * 100);
-                carbonBar.style.width = `${carbonPct}%`;
+                // Split by space to isolate "1,500" from "kg CO2e" before removing non-digits
+                let rawCarbon = parseInt(sunData.carbon_footprint.split(' ')[0].replace(/[^\d]/g, '')) || 0;
+                const carbonPct = Math.min(100, (rawCarbon / (window.AgriData.ESG_CONSTANTS.CARBON_BENCHMARK * inputs.landSize)) * 100);
+                setTimeout(() => { carbonBar.style.width = `${carbonPct}%`; }, 200);
             }
 
             if (esgWaterVal) esgWaterVal.textContent = sunData.groundwater_impact;
             if (esgWaterBar) {
-                const waterImpactPct = Math.min(100, (parseInt(sunData.groundwater_impact.replace(/[^\d]/g, '')) / (inputs.waterAvailable * 2)) * 100);
-                esgWaterBar.style.width = `${waterImpactPct}%`;
+                let rawWater = parseInt(sunData.groundwater_impact.split(' ')[0].replace(/[^\d]/g, '')) || 0;
+                const waterImpactPct = Math.min(100, (rawWater / (inputs.waterAvailable * 2)) * 100);
+                setTimeout(() => { esgWaterBar.style.width = `${waterImpactPct}%`; }, 300);
             }
 
             if (organicVal) organicVal.textContent = sunData.organic_boost;
             if (organicBar) {
-                const organicPct = (parseInt(sunData.organic_boost.replace(/[^\d]/g, '')) / window.AgriData.ESG_CONSTANTS.ORGANIC_SCORE_MAX) * 100;
-                organicBar.style.width = `${organicPct}%`;
+                let rawOrganic = parseInt(sunData.organic_boost.split(' ')[0].replace(/[^\d]/g, '')) || 0;
+                const organicPct = (rawOrganic / window.AgriData.ESG_CONSTANTS.ORGANIC_SCORE_MAX) * 100;
+                setTimeout(() => { organicBar.style.width = `${organicPct}%`; }, 400);
             }
 
             // Reset classes
@@ -808,15 +1115,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- NEW: Render Government Subsidies ---
         const subsidyList = document.getElementById('subsidyList');
         if (subsidyList && data.subsidies) {
-            subsidyList.innerHTML = data.subsidies.map(s => `
-                <div class="subsidy-item animate-in">
-                    <div class="subsidy-header">
-                        <span class="subsidy-name">${s.name}</span>
-                        <span class="subsidy-benefit">${s.benefit}</span>
+            if (data.subsidies.length > 0) {
+                subsidyList.innerHTML = data.subsidies.map(s => `
+                    <div class="subsidy-item animate-in">
+                        <div class="subsidy-header">
+                            <span class="subsidy-name">${s.name}</span>
+                            <span class="subsidy-benefit">${s.benefit}</span>
+                        </div>
+                        <p class="subsidy-desc">${s.description}</p>
                     </div>
-                    <p class="subsidy-desc">${s.description}</p>
-                </div>
-            `).join('') || '<div class="text-muted" style="padding: 1rem;">No specific subsidies found for this profile.</div>';
+                `).join('');
+            } else {
+                subsidyList.innerHTML = '<div class="text-muted" style="padding: 1rem;">No specific subsidies found for this profile.</div>';
+            }
         }
 
         // --- NEW: Render Market Price Risk ---
@@ -963,40 +1274,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         // Add AI Reasoning text
-        document.getElementById('aiReasoning').textContent = data.reasoning;
+        const aiReasoningEl = document.getElementById('aiReasoning');
+        if (aiReasoningEl) aiReasoningEl.textContent = data.reasoning;
 
         // Crop Suggestions Grid
         const suggestionsBox = document.getElementById('cropSuggestions');
-        suggestionsBox.innerHTML = ''; // Clear previous
+        if (suggestionsBox) {
+            suggestionsBox.innerHTML = ''; // Clear previous
 
-        const alternatives = Array.isArray(data.alternatives) ? data.alternatives : [];
-        const allTopCrops = rec ? [rec, ...alternatives] : alternatives;
+            const alternatives = Array.isArray(data.alternatives) ? data.alternatives : [];
+            const allTopCrops = rec ? [rec, ...alternatives] : alternatives;
 
-        allTopCrops.forEach((c, idx) => {
-            if (!c || !c.name) return;
-            const div = document.createElement('div');
-            div.className = `suggestion-pill ${idx === 0 ? 'top-pick' : ''}`;
-            div.innerHTML = `<strong>${c.name}</strong><br><small>Profit: ${safeVal(c.net_profit)}</small>`;
-            suggestionsBox.appendChild(div);
-        });
+            allTopCrops.forEach((c, idx) => {
+                if (!c || !c.name) return;
+                const div = document.createElement('div');
+                div.className = `suggestion-pill ${idx === 0 ? 'top-pick' : ''}`;
+                div.innerHTML = `<strong>${c.name}</strong><br><small>Profit: ${safeVal(c.net_profit)}</small>`;
+                suggestionsBox.appendChild(div);
+            });
+        }
 
-        // Formatting json strictly to spec requested
-        document.getElementById('jsonOutput').textContent = JSON.stringify({
-            location: data.location,
-            season: data.season,
-            risk_level: data.risk_level,
-            primary_recommendation: data.primary_recommendation,
-            alternatives: data.alternatives,
-            irrigation_strategy: data.irrigation_strategy,
-            reasoning: data.reasoning
-        }, null, 2);
+        const jsonOutputEl = document.getElementById('jsonOutput');
+        if (jsonOutputEl) {
+            jsonOutputEl.textContent = JSON.stringify({
+                location: data.location,
+                season: data.season,
+                risk_level: data.risk_level,
+                primary_recommendation: data.primary_recommendation,
+                alternatives: data.alternatives,
+                irrigation_strategy: data.irrigation_strategy,
+                reasoning: data.reasoning
+            }, null, 2);
+        }
 
         // Fade in
-        resultsContent.style.opacity = "0";
-        setTimeout(() => {
-            resultsContent.style.transition = "opacity 0.5s ease";
-            resultsContent.style.opacity = "1";
-        }, 50);
+        if (resultsContent) {
+            resultsContent.style.opacity = "0";
+            setTimeout(() => {
+                resultsContent.style.transition = "opacity 0.5s ease";
+                resultsContent.style.opacity = "1";
+            }, 50);
+        }
 
         // --- NEW: Trigger Standalone Crop Library ---
         generateCropLibrary(data.location.state, inputs.month.toString(), inputs.soilType);
@@ -1058,16 +1376,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Modal Handling for JSON Payload
-    viewJsonBtn.addEventListener('click', () => {
-        jsonModal.classList.remove('hidden');
-    });
+    if (viewJsonBtn) {
+        viewJsonBtn.addEventListener('click', () => {
+            if (jsonModal) jsonModal.classList.remove('hidden');
+        });
+    }
 
-    closeModal.addEventListener('click', () => {
-        jsonModal.classList.add('hidden');
-    });
+    if (closeModal) {
+        closeModal.addEventListener('click', () => {
+            if (jsonModal) jsonModal.classList.add('hidden');
+        });
+    }
 
     window.addEventListener('click', (e) => {
-        if (e.target == jsonModal) {
+        if (jsonModal && e.target == jsonModal) {
             jsonModal.classList.add('hidden');
         }
     });
@@ -1092,6 +1414,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 simulationDebounceTimer = setTimeout(runSimulation, 150);
             });
         });
+
+        // Initial run to populate values instead of leaving them at 0
+        setTimeout(runSimulation, 300);
     }
 
     function updateSimLabels() {
@@ -1260,4 +1585,182 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Add more keyword mappings as needed for a robust demo
     }
+
+    /* =========================================================================
+       WOW-FACTOR ANIMATION ORCHESTRATOR
+       Handles the scroll reveals for a premium hackathon presentation feel.
+       ========================================================================= */
+    function initScrollAnimations() {
+        // High-performance observer settings
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px 0px -50px 0px', // Trigger slightly before it hits the bottom
+            threshold: 0.1 // Just 10% visibility is enough to trigger
+        };
+
+        const revealObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Add the class that triggers the CSS transition
+                    entry.target.classList.add('is-visible');
+
+                    // Optional: Unobserve after revealing to prevent re-animating on scroll up (cleaner look)
+                    // observer.unobserve(entry.target); 
+                } else {
+                    // Remove if you want it to fade out when scrolling past
+                    entry.target.classList.remove('is-visible');
+                }
+            });
+        }, observerOptions);
+
+        // Select all major container elements that should animate in
+        const elementsToAnimate = [
+            // Structural Blocks
+            '.hero-content', '.glass-panel', '.input-panel',
+            // Results Containers
+            '.result-card', '.simulation-card', '.sustainability-card',
+            // Specific Elements
+            '.esg-dashboard', '.impact-grid', '.weather-panel'
+        ];
+
+        // Apply base reveal class and observe
+        elementsToAnimate.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => {
+                // Determine if we want a specific direction or pop effect
+                if (el.classList.contains('simulation-card')) {
+                    el.classList.add('reveal-pop'); // Bouncy pop for the "Wow!" element
+                } else if (el.classList.contains('sidebar')) {
+                    el.classList.add('reveal-on-scroll', 'reveal-right'); // Slide from side
+                } else {
+                    el.classList.add('reveal-on-scroll'); // Standard float up
+                }
+
+                revealObserver.observe(el);
+            });
+        });
+
+        // Setup staggered animations for lists/grids (e.g., crop suggestions, metrics)
+        const setupStagger = (parentSelector, childSelector) => {
+            document.querySelectorAll(parentSelector).forEach(container => {
+                const children = container.querySelectorAll(childSelector);
+                children.forEach((child, index) => {
+                    child.classList.add('reveal-on-scroll');
+
+                    // Assign cascading delay classes based on flex/grid order
+                    // Capped at 500ms to keep it snappy
+                    const delayClass = `delay-${Math.min((index + 1) * 100, 500)}`;
+                    child.classList.add(delayClass);
+
+                    revealObserver.observe(child);
+                });
+            });
+        };
+
+        // Stagger the intelligence pills and resource allocation items
+        setupStagger('.crop-list', '.suggestion-pill');
+        setupStagger('.allocation-grid', '.allocation-item');
+        setupStagger('.metric-grid', '.metric');
+    }
+
+    // Initialize animations after a short delay to ensure DOM is fully rendered
+    // and to not block initial paint
+    setTimeout(initScrollAnimations, 100);
+
+    /* =========================================================================
+       IOT SENSOR DEMO DATA GENERATOR
+       ========================================================================= */
+    const loadDemoSensorBtn = document.getElementById('loadDemoSensorBtn');
+    const demoStatus = document.getElementById('demoStatus');
+    const sensorCsvInput = document.getElementById('sensorCsv');
+
+    // Also handle manual file upload text update
+    if (sensorCsvInput) {
+        sensorCsvInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                const uploadText = e.target.closest('.file-upload-wrapper').querySelector('.upload-text');
+                if (uploadText) {
+                    uploadText.innerHTML = `Selected: <strong>${fileName}</strong>`;
+                }
+            }
+        });
+    }
+
+    if (loadDemoSensorBtn) {
+        loadDemoSensorBtn.addEventListener('click', () => {
+            demoStatus.textContent = "Generating 14-day sensor logs...";
+            demoStatus.style.color = "var(--highlight)";
+
+            // Simulate processing time for hackathon wow-factor
+            setTimeout(() => {
+                const demoData = generateDemoTimeSeriesData();
+                sessionStorage.setItem('agri_sensor_data', JSON.stringify(demoData));
+
+                demoStatus.textContent = "✓ 336 Data points loaded successfully!";
+                demoStatus.style.color = "var(--status-safe)";
+
+                // Update file input UI to show it's "loaded"
+                const uploadText = document.querySelector('.upload-text');
+                if (uploadText) {
+                    uploadText.innerHTML = `Loaded: <strong>14-day_sensor_log.csv</strong>`;
+                }
+            }, 800);
+        });
+    }
+
+    // Helper to generate realistic-looking time series data (Hourly for 14 days = 336 points)
+    function generateDemoTimeSeriesData() {
+        const data = [];
+        let currentTemp = 25;
+        let currentMoisture = 35; // Optimal: 25-40%
+        let currentPH = 6.8;      // Optimal: 6.0-7.5
+        let currentNitrogen = 350; // Optimal: 200-500
+
+        const now = new Date();
+        const startTime = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000)); // 14 days ago
+
+        for (let i = 0; i < 336; i++) {
+            const timestamp = new Date(startTime.getTime() + (i * 60 * 60 * 1000));
+
+            // Diurnal temperature cycle (between ~15 and ~30)
+            const hour = timestamp.getHours();
+            const tempBase = 22 + Math.sin((hour - 6) * Math.PI / 12) * 8;
+            currentTemp = tempBase + (Math.random() * 2 - 1);
+
+            // Moisture drops slowly
+            currentMoisture -= (currentTemp / 200) + (Math.random() * 0.1);
+            // Severe drought simulation at index 240 (day 10)
+            if (i === 240) {
+                currentMoisture -= 18;
+            }
+            // Rapid recovery
+            if (i === 280) {
+                currentMoisture += 25;
+            }
+            if (currentMoisture < 8) currentMoisture = 8;
+            if (currentMoisture > 60) currentMoisture = 60;
+
+            // pH mostly stable
+            currentPH += (Math.random() * 0.04 - 0.02);
+            // Sudden acidic dip towards end
+            if (i > 288 && i < 300) {
+                currentPH -= 0.15;
+            }
+            if (currentPH < 4.5) currentPH = 4.5;
+
+            // Nitrogen drops steadily
+            currentNitrogen -= (Math.random() * 2);
+            if (currentNitrogen < 50) currentNitrogen = 50;
+
+            data.push({
+                timestamp: timestamp.toISOString(),
+                temperature: currentTemp.toFixed(1),
+                moisture: currentMoisture.toFixed(1),
+                ph: currentPH.toFixed(2),
+                nitrogen: currentNitrogen.toFixed(0)
+            });
+        }
+        return data;
+    }
+
 });
